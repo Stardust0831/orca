@@ -10,6 +10,7 @@ export type AgentPickerDefaultSettings = Partial<
   Pick<
     GlobalSettings,
     | 'agentLaunchChoices'
+    | 'codexLaunchProfiles'
     | 'agentDefaultArgs'
     | 'agentPermissionDefault'
     | 'agentPermissionOverrides'
@@ -21,10 +22,11 @@ export type AgentPickerDefaultSettings = Partial<
 export function agentPickerChoiceSeeds(
   agent: TuiAgent,
   settings: AgentPickerDefaultSettings | null | undefined
-): Pick<AgentPickerEntry, 'terminal' | 'structured' | 'arguments'> {
+): Pick<AgentPickerEntry, 'terminal' | 'structured' | 'arguments' | 'codexLaunchProfiles'> {
   const profile = projectAgentLaunchProfile(agent, settings, { target: 'structured' })
   const { model, permissionMode, ...options } = structuredLaunchSeedOptions(settings, agent) ?? {}
   return {
+    ...(agent === 'codex' ? { codexLaunchProfiles: settings?.codexLaunchProfiles } : {}),
     terminal: profile.choices,
     structured: {
       ...(model ? { model } : {}),
@@ -56,5 +58,21 @@ export function usableAgentPickerDefaultSettings(
         isAgentPermissionChoice(value.agentPermission.default) &&
         argsRecord(value.agentPermission.userArgs) &&
         permissionsRecord(value.agentPermission.overrides)))
+  )
+}
+
+export function agentPickerSettingsIdentity(
+  settings: AgentPickerDefaultSettings | null | undefined
+) {
+  return (
+    settings && [
+      settings.agentDefaultArgs,
+      settings.codexLaunchProfiles,
+      settings.agentLaunchChoices,
+      settings.agentPermissionDefault,
+      settings.agentPermissionOverrides,
+      settings.nativeChatSessionOptions,
+      settings.nativeChatPermissionMode
+    ]
   )
 }

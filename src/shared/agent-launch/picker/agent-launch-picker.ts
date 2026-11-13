@@ -1,3 +1,7 @@
+import {
+  normalizeCodexLaunchProfiles,
+  type CodexLaunchProfile
+} from '../choices/codex-launch-profiles'
 import { parseExecutionHostId, type ExecutionHostId } from '../../execution-host'
 import type { TextActionPickerCatalog } from './agent-launch-picker-text-action'
 import { agentPickerLaunchChoices } from './agent-launch-picker-effective-choices'
@@ -27,6 +31,9 @@ export type AgentPickerModel = AgentSessionModelOption & {
   hidden?: true
 }
 export type AgentPickerEntry = {
+  launchProfileId?: string
+  codexLaunchProfiles?: CodexLaunchProfile[]
+  codexLaunchProfile?: CodexLaunchProfile
   textGeneration?: TextActionPickerCatalog
   agent: TuiAgent
   label: string
@@ -69,11 +76,56 @@ export type AgentPickerDraft = {
   prompt?: string
 }
 
+export function agentPickerEntryId(entry: AgentPickerEntry): string {
+  return entry.launchProfileId ? `${entry.agent}:${entry.launchProfileId}` : entry.agent
+}
+
+/** Profiles inherit availability and permissions, but own their model and configuration. */
+export function expandCodexPickerEntries(entries: AgentPickerEntry[]): AgentPickerEntry[] {
+  return entries.flatMap((entry) => {
+    const profiles =
+      entry.agent === 'codex' ? normalizeCodexLaunchProfiles(entry.codexLaunchProfiles) : []
+    return [
+      entry,
+      ...profiles.map((profile): AgentPickerEntry => ({
+        ...entry,
+        launchProfileId: profile.id,
+        codexLaunchProfile: profile,
+        label: profile.label,
+        description: `${profile.modelProvider} · ${profile.homePath}`,
+        aliases: [profile.modelProvider],
+        terminal: {
+          ...(entry.terminal.permissionMode
+            ? { permissionMode: entry.terminal.permissionMode }
+            : {}),
+          ...(profile.model ? { model: profile.model } : {})
+        },
+        structured: {
+          ...(entry.structured.permissionMode
+            ? { permissionMode: entry.structured.permissionMode }
+            : {}),
+          ...(profile.model ? { model: profile.model } : {})
+        },
+        arguments: null,
+        catalog: { origin: 'unknown' },
+        catalogRead: 'unsupported',
+        defaultsPending: false,
+        structuredDefaultsPending: false
+      }))
+    ]
+  })
+}
+
 export function agentPickerDraft(
   entry: AgentPickerEntry,
   surface = entry.defaultSurface
 ): AgentPickerDraft {
-  return { agent: entry.agent, surface, choices: {}, arguments: undefined }
+  return {
+    agent: entry.agent,
+    surface,
+    choices: entry.launchProfileId ? { options: { launchProfileId: entry.launchProfileId } } : {},
+    arguments: undefined
+  }
 }
 
 export function editAgentPickerDraft(
@@ -145,12 +197,20 @@ export function agentPickerLaunchInputs(draft: AgentPickerDraft, entry?: AgentPi
         ...agentPickerOptions(draft.agent, choices.model, 'terminal').map((option) => option.id)
       ])
     })
-  return projectAgentLaunchInputViews(draft.agent, choices, result, {
+  const views = projectAgentLaunchInputViews(draft.agent, choices, result, {
     ...(authorized && draft.arguments !== undefined ? { agentArgs: draft.arguments } : {}),
     modelContext: entry?.terminal.model,
     sourceKeys: current?.context.literalKeys,
     permissionContext: entry?.terminal.permissionMode
   })
+  if (entry?.launchProfileId) {
+    views.sessionOptions = { ...views.sessionOptions, launchProfileId: entry.launchProfileId }
+    views.chatSessionOptions = {
+      ...(views.chatSessionOptions ?? views.sessionOptions),
+      launchProfileId: entry.launchProfileId
+    }
+  }
+  return views
 }
 
 export function agentPickerFreshLaunchInputs(
@@ -164,7 +224,7 @@ export function agentPickerFreshLaunchInputs(
     draft.acceptedEdits?.arguments === undefined
   ) {
     // Why: choosing a control can materialize settings text without authoring Arguments.
-    return agentPickerLaunchInputs({ ...draft, arguments: undefined })
+    return agentPickerLaunchInputs({ ...draft, arguments: undefined }, entry)
   }
   return agentPickerLaunchInputs(draft, entry)
 }

@@ -22,9 +22,10 @@ import {
   filterAgentPickerEntries,
   searchAgentPickerSetups
 } from '../../../../shared/agent-launch/picker/agent-launch-picker-search'
-import type {
-  AgentPickerDraft,
-  AgentPickerEntry
+import {
+  agentPickerEntryId,
+  type AgentPickerDraft,
+  type AgentPickerEntry
 } from '../../../../shared/agent-launch/picker/agent-launch-picker'
 
 export function AgentLaunchPickerMenu({
@@ -103,6 +104,7 @@ export function AgentLaunchPickerMenu({
   const [activeSetup, setActiveSetup] = useState<{
     id: string
     agent: AgentPickerEntry['agent']
+    entryId: string
     preset?: AgentPickerSetupIdentity
     label: string
   } | null>(null)
@@ -112,13 +114,13 @@ export function AgentLaunchPickerMenu({
   const visible = filterAgentPickerEntries(entries, query)
   // Filtering changes presentation; an active owner survives its result row disappearing.
   if (activeSetup) {
-    const entry = entries.find((entry) => entry.agent === activeSetup.agent)
+    const entry = entries.find((entry) => agentPickerEntryId(entry) === activeSetup.entryId)
     if (
       entry &&
       activeSetup.preset &&
       !setups.some(
         (setup) =>
-          setup.entry.agent === entry.agent &&
+          agentPickerEntryId(setup.entry) === agentPickerEntryId(entry) &&
           setup.model.id === activeSetup.preset?.model &&
           setup.choices.options?.effort === activeSetup.preset.effort
       )
@@ -218,13 +220,18 @@ export function AgentLaunchPickerMenu({
             const source = draftForEntry?.(entry)
             return (
               <AgentPickerMenuRow
-                key={entry.agent}
+                key={agentPickerEntryId(entry)}
                 draftScope={draftScope}
                 entry={entry}
                 mode={mode}
                 searchDefault={showSearchDefault && entry === firstEntry}
                 source={source}
-                selected={value?.agent === entry.agent ? value : undefined}
+                selected={
+                  value?.agent === entry.agent &&
+                  value.choices.options?.launchProfileId === entry.launchProfileId
+                    ? value
+                    : undefined
+                }
                 setupDisabled={setupDisabled}
                 openSetup={openSetup}
                 onSetupOpenChange={setActiveSetup}
@@ -232,9 +239,13 @@ export function AgentLaunchPickerMenu({
                 terminalBlocked={terminalBlocked}
                 runLaunch={runLaunch}
                 onSelectAgent={onSelectAgent}
-                isDefault={defaultAgent === entry.agent}
-                onSetDefault={onSetDefault}
-                shortcut={mode !== 'select' ? shortcutLabels?.get(entry.agent) : undefined}
+                isDefault={!entry.launchProfileId && defaultAgent === entry.agent}
+                onSetDefault={entry.launchProfileId ? undefined : onSetDefault}
+                shortcut={
+                  mode !== 'select' && !entry.launchProfileId
+                    ? shortcutLabels?.get(entry.agent)
+                    : undefined
+                }
               />
             )
           })}
@@ -242,7 +253,7 @@ export function AgentLaunchPickerMenu({
             const source = draftForEntry?.(setup.entry)
             return (
               <AgentPickerMenuRow
-                key={`${setup.entry.agent}:${setup.model.id}:${setup.choices.options?.effort ?? ''}`}
+                key={`${agentPickerEntryId(setup.entry)}:${setup.model.id}:${setup.choices.options?.effort ?? ''}`}
                 draftScope={draftScope}
                 draftId={`${setup.model.id}:${setup.choices.options?.effort ?? ''}`}
                 initialModel={setup.model.id}
@@ -255,7 +266,12 @@ export function AgentLaunchPickerMenu({
                 label={setup.label}
                 searchDefault={showSearchDefault && setup === firstSetup}
                 source={source}
-                selected={value?.agent === setup.entry.agent ? value : undefined}
+                selected={
+                  value?.agent === setup.entry.agent &&
+                  value.choices.options?.launchProfileId === setup.entry.launchProfileId
+                    ? value
+                    : undefined
+                }
                 onSelectAgent={onSelectAgent}
                 disabled={disabled}
                 terminalBlocked={terminalBlocked}

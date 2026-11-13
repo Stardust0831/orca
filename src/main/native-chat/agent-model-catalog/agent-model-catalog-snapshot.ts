@@ -1,3 +1,4 @@
+import { codexLaunchProfileCatalogKey } from '../../../shared/agent-launch/choices/codex-launch-profiles'
 import {
   agentModelCatalogReadRecords,
   agentModelCatalogScopedRecord
@@ -98,7 +99,8 @@ export function agentModelCatalogRequestKey(
     workspacePath: params.workspacePath,
     inSessionWorkspace:
       inWorkspace && record ? [record.location.workspaceId, record.launchDirectory] : undefined,
-    legacy: params.legacy
+    legacy: params.legacy,
+    launchProfileKey: codexLaunchProfileCatalogKey(record?.codexLaunchProfile)
   })
 }
 

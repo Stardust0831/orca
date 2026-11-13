@@ -89,6 +89,7 @@ export type AgentSessionClaimedSpawnResult = {
 }
 
 export type AgentLaunchPreferences = {
+  launchProfileId?: string
   model?: string
   effort?: string
   mode?: string

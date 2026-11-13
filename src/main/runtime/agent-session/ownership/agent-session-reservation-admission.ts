@@ -57,6 +57,7 @@ export type AgentSessionReserveRequest = {
   location: AgentSessionExecutionLocation
   provider: StructuredAgentId
   accountHome: AgentSessionAccountHome
+  codexLaunchProfile?: AgentSessionRecord['codexLaunchProfile']
   /** Arguments pinned on first reservation so owner replacement repeats the same launch. */
   launchArgs?: AgentSessionLaunchArgs
   /** Current launch input validated here but never written to the durable record. */

@@ -1,3 +1,4 @@
+import type { CodexLaunchProfile } from '../../../shared/agent-launch/choices/codex-launch-profiles'
 import type { StructuredAgentResolutionOperation } from '../agent-launch/structured-agent-command-resolution'
 import type { AgentSessionAccountHome } from '../../../shared/agent-session/lifecycle/agent-session-account-home'
 import type { AgentModelCatalogSuccess } from './agent-model-catalog-entry'
@@ -34,7 +35,8 @@ export type AgentModelCatalogProbe = ((
     lookup?: AgentModelCatalogLookup,
     operation?: StructuredAgentResolutionOperation,
     /** Where a chat would launch, for resolving the executable; the listing still runs in `cwd`. */
-    launchDirectory?: string
+    launchDirectory?: string,
+    codexLaunchProfile?: CodexLaunchProfile
   ) => Promise<AgentModelCatalogResolvedProbe>
 }
 

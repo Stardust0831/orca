@@ -121,6 +121,7 @@ export async function prepareStructuredAgentSessionFork(
     provider: input.agent,
     agent: input.agent,
     accountHome: record.accountHome,
+    ...(record.codexLaunchProfile ? { codexLaunchProfile: record.codexLaunchProfile } : {}),
     runtimeKind: 'native',
     options: {
       ...record.options,

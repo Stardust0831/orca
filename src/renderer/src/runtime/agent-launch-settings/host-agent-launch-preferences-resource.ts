@@ -18,6 +18,7 @@ import {
 export type AgentLaunchPreferences = Readonly<{
   defaultTuiAgent: GlobalSettings['defaultTuiAgent'] | undefined
   disabledTuiAgents: GlobalSettings['disabledTuiAgents'] | undefined
+  codexLaunchProfiles?: GlobalSettings['codexLaunchProfiles']
   agentLaunchChoices?: GlobalSettings['agentLaunchChoices']
   agentDefaultArgs?: GlobalSettings['agentDefaultArgs']
   agentPermissionDefault?: GlobalSettings['agentPermissionDefault']
@@ -95,6 +96,7 @@ function refresh(entry: Resource): void {
               defaultTuiAgent: settings.defaultTuiAgent,
               disabledTuiAgents: settings.disabledTuiAgents,
               agentLaunchChoices: settings.agentLaunchChoices,
+              codexLaunchProfiles: settings.codexLaunchProfiles,
               agentDefaultArgs: settings.agentDefaultArgs,
               agentPermissionDefault: settings.agentPermissionDefault,
               agentPermissionOverrides: settings.agentPermissionOverrides

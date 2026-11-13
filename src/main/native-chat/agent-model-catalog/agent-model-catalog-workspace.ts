@@ -13,7 +13,13 @@ import type { AgentModelCatalogStore } from './agent-model-catalog-store'
 
 export type AgentModelCatalogRecord = Pick<
   AgentSessionRecord,
-  'sessionId' | 'provider' | 'providerHandleChain' | 'accountHome' | 'location' | 'launchDirectory'
+  | 'sessionId'
+  | 'provider'
+  | 'providerHandleChain'
+  | 'accountHome'
+  | 'location'
+  | 'launchDirectory'
+  | 'codexLaunchProfile'
 >
 
 export type AgentModelCatalogWorkspaceDeps = {

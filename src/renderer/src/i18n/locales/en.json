@@ -1081,7 +1081,23 @@
       "undetectedCommandHint": "If the {{agent}} CLI is installed outside PATH, enter the full path to its executable on this host.",
       "agentActions": "{{agent}} actions",
       "defaultAutoBadge": "Default · Auto",
-      "newAgentsTitle": "New agents"
+      "newAgentsTitle": "New agents",
+      "codexProfiles": {
+        "saveFailed": "Profiles could not be saved. Try again.",
+        "title": "Codex profiles",
+        "description": "Choose a Codex home and one of its providers for each named entry. Several entries can share the same home.",
+        "add": "Add profile",
+        "edit": "Edit",
+        "remove": "Remove",
+        "name": "Name",
+        "home": "Codex home",
+        "provider": "Provider ID",
+        "model": "Model (optional)",
+        "providerHint": "Use an absolute home path on this host and a provider ID from its config.toml. Credentials stay in the Codex configuration or host environment.",
+        "cancel": "Cancel",
+        "saving": "Saving…",
+        "save": "Save"
+      }
     },
     "followSymlinkedDirectoriesKeywords": {
       "symlink": "symlink",

@@ -96,3 +96,45 @@ describe('codex structured launch resolution', () => {
     }
   })
 })
+
+it('keeps a named conversation on its home and provider when the selected account changes', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'orca-codex-profile-'))
+  vi.stubEnv('ORCA_USER_DATA_PATH', join(root, 'user-data'))
+  try {
+    const home = join(root, 'named-home')
+    mkdirSync(home)
+    writeFileSync(join(home, 'config.toml'), '[model_providers.work]\nname="Work"\n')
+    const value = record({
+      accountHome: { variable: 'CODEX_HOME', path: home },
+      codexLaunchProfile: { id: 'work', label: 'Work', homePath: home, modelProvider: 'work' },
+      providerHandleChain: [
+        {
+          linkId: 'current',
+          handle: codexProviderHandle('saved-thread'),
+          origin: 'created',
+          mintedAtFence: 1,
+          observedAt: 1
+        }
+      ]
+    })
+    let configured = ['-m', 'default-model', '-c', 'model_provider="default"']
+    const resolve = createCodexStructuredLaunchResolver({
+      store: { getRecord: () => value, pinLaunchDirectory: vi.fn() },
+      resolveWorkspacePath: async () => root,
+      resolveCommand: () => ({ command: '/bin/codex', prefixArgs: [] }),
+      resolveLaunchArgs: () => configured
+    })
+    const first = await resolve({ identity: IDENTITY })
+    expect(first.env.CODEX_HOME).toBe(home)
+    expect(first.args).toContain('model_provider="work"')
+    expect(first.args).not.toContain('default-model')
+    expect(first.resumeThreadId).toBe('saved-thread')
+    configured = ['-m', 'another-default']
+    expect((await resolve({ identity: IDENTITY })).args).toEqual(first.args)
+    rmSync(home, { recursive: true })
+    await expect(resolve({ identity: IDENTITY })).rejects.toThrow('existing home')
+  } finally {
+    vi.unstubAllEnvs()
+    rmSync(root, { recursive: true, force: true })
+  }
+})

@@ -72,6 +72,7 @@ export function hostAgentLaunchSettingsSource(
     defaultTuiAgent: snapshot.defaultTuiAgent,
     disabledTuiAgents: snapshot.disabledTuiAgents,
     agentCmdOverrides: snapshot.agentCmdOverrides,
+    codexLaunchProfiles: snapshot.codexLaunchProfiles,
     ...migrateAgentPermissionChoice(
       {
         agentDefaultArgs: choices?.userArgs ?? permission?.userArgs ?? snapshot.agentDefaultArgs,

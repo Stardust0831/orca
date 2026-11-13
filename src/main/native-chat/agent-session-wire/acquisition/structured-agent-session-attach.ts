@@ -1,3 +1,4 @@
+import type { CodexLaunchProfile } from '../../../../shared/agent-launch/choices/codex-launch-profiles'
 import type { JournalReplacementItem } from '../../agent-session-journal/context-epochs/journal-epoch-replacement'
 import type { NativeCopyOrigin } from '../../agent-session-journal/context-epochs/journal-history-origin'
 import { activeProviderContext } from '../../../../shared/agent-session/agent-session-provider-context'
@@ -48,6 +49,7 @@ export type AgentSessionAttachParams = {
   provider: StructuredAgentId
   agent: StructuredAgentId
   accountHome: AgentSessionAccountHome
+  codexLaunchProfile?: CodexLaunchProfile
   /** Retain native in params because fingerprints include it. */
   runtimeKind: 'native'
   /** Host-only create defaults; remote schemas reject these. */
@@ -92,6 +94,7 @@ export function attachFingerprintFields(params: AgentSessionAttachParams): Recor
     provider: params.provider,
     agent: params.agent,
     accountHome: params.accountHome,
+    ...(params.codexLaunchProfile ? { codexLaunchProfile: params.codexLaunchProfile } : {}),
     runtimeKind: params.runtimeKind,
     providerHandle: params.providerHandle,
     // Adoption changes identity; transcript location is transient and excluded.
@@ -212,6 +215,7 @@ export function reserveRequestFor(input: {
     location: params.location,
     provider: params.provider,
     accountHome: params.accountHome,
+    ...(params.codexLaunchProfile ? { codexLaunchProfile: params.codexLaunchProfile } : {}),
     ...(params.options ? { options: params.options, models: input.models } : {}),
     ...(params.envelope.expectedRuntimeFence === null && params.surfaceTabId
       ? { surfaceTabId: params.surfaceTabId }

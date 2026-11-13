@@ -1,3 +1,4 @@
+import { CODEX_PROFILE_HOME_ENV } from '../../../../shared/agent-launch/choices/codex-launch-profiles'
 import type { RuntimeAccountController } from '../../agent-session/environment/runtime-account-controller'
 import { applyRemoteViewerLaunchEnv } from './remote-viewer-launch-env'
 import type { SessionOptionValue } from '../../../../shared/native-chat/input/native-chat-session-options'
@@ -156,7 +157,10 @@ export function withHostAccountLaunchEnv(
       ...launch.env,
       ...accountEnv,
       ...requested.env,
-      ...requested.accountEnv
+      ...requested.accountEnv,
+      ...(launch.env?.[CODEX_PROFILE_HOME_ENV]
+        ? { CODEX_HOME: launch.env[CODEX_PROFILE_HOME_ENV] }
+        : {})
     }
   }
 }
@@ -235,6 +239,9 @@ async function buildRuntimeAgentTerminalStartupOptions(
 
   // Account routing rides over the plan's own env, as a local launch's auth patch does.
   const env = opts.accountEnv ? { ...startupPlan.env, ...opts.accountEnv } : startupPlan.env
+  if (env?.[CODEX_PROFILE_HOME_ENV]) {
+    env.CODEX_HOME = env[CODEX_PROFILE_HOME_ENV]
+  }
   return {
     ...opts,
     command: startupPlan.launchCommand,
@@ -295,7 +302,7 @@ export async function prepareHostAgentTerminalLaunch(
 ): Promise<TerminalCreateOptions> {
   const launch = applyRemoteViewerLaunchEnv(resolvedLaunch, opts.terminalImageViewerSupported)
   // An SSH workspace's shell runs on that machine, where this distro's account paths mean nothing.
-  if (workspace.connectionId) {
+  if (workspace.connectionId || launch.env?.[CODEX_PROFILE_HOME_ENV]) {
     return launch
   }
   if (launch.launchAgent) {

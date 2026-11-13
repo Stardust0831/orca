@@ -28,6 +28,9 @@ export function toAgentLaunchPreferences(
       : undefined
   const mode = readLaunchPermissionChoice(sessionOptions)
   const preferences: AgentLaunchPreferences = {
+    ...(agent === 'codex' && typeof sessionOptions.launchProfileId === 'string'
+      ? { launchProfileId: sessionOptions.launchProfileId }
+      : {}),
     ...(model ? { model } : {}),
     ...(effort ? { effort } : {}),
     ...(mode && isTuiAgent(agent) && agentPermissionHasTerminalChoice(agent, mode) ? { mode } : {})

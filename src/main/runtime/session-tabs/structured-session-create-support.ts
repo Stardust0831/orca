@@ -1,3 +1,5 @@
+import { codexLaunchProfileSeedOptions } from '../../../shared/agent-launch/choices/codex-launch-profiles'
+import { resolveCodexSessionLaunchProfile } from '../../codex/configuration/homes/codex-launch-profile-home'
 import { AGENT_CHAT_PERMISSION_MODE_OPTION_ID } from '../../../shared/agent-launch/permissions/agent-chat-permission-mode'
 import { resolveStructuredAgentSessionForkIntent } from '../../native-chat/agent-session-wire/acquisition/structured-agent-session-fork-intent'
 import {
@@ -137,22 +139,6 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
     return hostLaunchDirectory ? { ...resolved, hostLaunchDirectory } : resolved
   }
 
-  /** Resolve catalog account home through the same host create-intent resolver when no session record exists. */
-  async resolveStructuredAgentAccountHome(
-    agent: StructuredAgentId
-  ): Promise<AgentSessionAccountHome> {
-    const resolveAccountHome = this.structuredAgentAccountHomeResolver(agent, '', 'read')
-    if (!resolveAccountHome) {
-      throw agentSessionRefusalError('structured_agent_session_unsupported', {
-        reason: 'hostUnsupported'
-      })
-    }
-    // A read, not a launch: only the account push is awaited, never a folder refresh.
-    await this.accounts.prepareHostAgentLaunch(null)
-    const launchEnv = this.structuredAgentLaunchEnv(agent, this.requireStore().getSettings())
-    return resolveAccountHome({ launchEnv, location: null })
-  }
-
   protected async resolveStructuredAgentSessionIntent(
     input: StructuredAgentSessionCreateIntentInput,
     resolveAccountHome: (
@@ -177,16 +163,25 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
         reason: 'hostUnsupported'
       })
     }
-    await this.accounts.prepareHostAgentLaunch(input.agent)
+    if (!input.launchProfileId) {
+      await this.accounts.prepareHostAgentLaunch(input.agent)
+    }
     const settings = this.requireStore().getSettings()
+    const codexLaunchProfile = await resolveCodexSessionLaunchProfile(
+      input,
+      settings.codexLaunchProfiles,
+      getStructuredAgentSessionHost()?.deps.store.getRecord(input.envelope.sessionId)
+        ?.codexLaunchProfile
+    )
     const launchEnv = this.structuredAgentLaunchEnv(input.agent, settings)
-    const options = structuredLaunchSeedOptions(
+    const defaultOptions = structuredLaunchSeedOptions(
       {
         ...settings,
         agentLaunchChoices: input.resumeFrom ? undefined : settings.agentLaunchChoices
       },
       input.agent
     )
+    const options = codexLaunchProfileSeedOptions(codexLaunchProfile, defaultOptions)
     const location = await this.resolveStructuredAgentSessionLocation(input.worktree)
     const definition = this.requireRegisteredStructuredAgent(input.agent)
     const host = getStructuredAgentSessionHost()
@@ -210,7 +205,9 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
       ? (await this.resolveRuntimeFileTarget(input.worktree)).worktree.path
       : ''
     const permissionMode = options?.[AGENT_CHAT_PERMISSION_MODE_OPTION_ID]
-    const selectedAccountHome = await resolveAccountHome({ launchEnv, location }, permissionMode)
+    const selectedAccountHome: AgentSessionAccountHome = codexLaunchProfile
+      ? { variable: 'CODEX_HOME', path: codexLaunchProfile.homePath }
+      : await resolveAccountHome({ launchEnv, location }, permissionMode)
     // Adoption pins the transcript's actual account home; fresh-create defaults may open a blank conversation under the old name.
     const adoption =
       resumeFrom && transcriptImport
@@ -243,6 +240,7 @@ export abstract class OrcaRuntimeWithGetStructuredAgentSessionCreateSupport exte
       provider: input.agent,
       agent: input.agent,
       accountHome: adoption ? adoption.accountHome : selectedAccountHome,
+      ...(codexLaunchProfile ? { codexLaunchProfile } : {}),
       ...(options ? { options } : {}),
       ...(input.resumeFrom && adoption
         ? {

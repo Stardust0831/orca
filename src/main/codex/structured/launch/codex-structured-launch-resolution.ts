@@ -1,3 +1,5 @@
+import { resolveCodexLaunchProfileHome } from '../../configuration/homes/codex-launch-profile-home'
+import { codexLaunchProfileArgs } from '../../../../shared/agent-launch/choices/codex-launch-profiles'
 import { pathEnvRelativeTo } from '../../../../shared/node-cli-command-resolution'
 import { waitForPromiseWithSignal } from '../../../../shared/abort-signal-reason'
 import {
@@ -136,7 +138,14 @@ export function codexStructuredLaunchPart(
       resolveEnvironment: basis.environment
     })
     const environment = await basis.environment()
-    const args = codexStructuredLaunchArgs(await deps.resolveLaunchArgs())
+    const configuredArgs = record.codexLaunchProfile ? [] : await deps.resolveLaunchArgs()
+    const profile = record.codexLaunchProfile
+      ? await resolveCodexLaunchProfileHome(record.codexLaunchProfile)
+      : undefined
+    const args = [
+      ...codexStructuredLaunchArgs(configuredArgs),
+      ...(profile ? codexLaunchProfileArgs(profile) : [])
+    ]
     const head = agentSessionProviderHandleChainHead(record.providerHandleChain)
     const resumeThreadId = head?.handle.nativeId ?? null
     // Match the first turn's model to avoid duplicate prompt injection on a model switch.
@@ -172,6 +181,7 @@ export function codexStructuredLaunchPart(
           'app-server'
         ],
         codexHome: accountHome.path,
+        ...(profile ? { codexLaunchProfile: profile } : {}),
         resumeThreadId,
         // Only created threads may be unsaved; resumed, forked and adopted threads were persisted.
         ...(resumeThreadId && head?.origin === 'created' ? { supersedeIfUnsaved: true } : {}),

@@ -1,8 +1,10 @@
 import { terminalPendingReason } from './new-tab-agent-menu-model'
 import { searchAgentPickerSetups } from '../../../../shared/agent-launch/picker/agent-launch-picker-search'
-import type {
-  AgentPickerDraft,
-  AgentPickerEntry
+import {
+  agentPickerDraft,
+  agentPickerEntryId,
+  type AgentPickerDraft,
+  type AgentPickerEntry
 } from '../../../../shared/agent-launch/picker/agent-launch-picker'
 import type { AgentPickerSetupIdentity } from '../agent/agent-launch-picker-drafts'
 import { rowLabel, rowId, chatUnavailableLabel } from './tab-agent-row-presentation'
@@ -124,6 +126,17 @@ export function buildAgentPickerLaunchOptions(
       ? buildTabAgentLaunchOptionsFromRows([row], commandOverrides, t).map((option) => ({
           ...option,
           label: entry.label,
+          ...(entry.launchProfileId
+            ? {
+                id: `${option.id}:${entry.launchProfileId}`,
+                setup: agentPickerDraft(entry),
+                aliases: [
+                  ...option.aliases,
+                  normalizeAgentAlias(entry.label),
+                  compactAgentAlias(entry.label)
+                ]
+              }
+            : {}),
           pickerEntry: entry
         }))
       : []
@@ -202,14 +215,24 @@ export function matchingAgentPickerLaunchOptions(
       agent: setup.entry.agent,
       label: setup.label,
       aliases: [],
-      id: `setup:${setup.entry.agent}:${setup.model.id}:${setup.choices.options?.effort ?? ''}:${surface}`,
+      id: `setup:${agentPickerEntryId(setup.entry)}:${setup.model.id}:${setup.choices.options?.effort ?? ''}:${surface}`,
       row: {
         agent: setup.entry.agent,
         kind: surface === 'chat' ? 'chat' : 'cli',
         executionHostId: setup.entry.rows[0]?.executionHostId
       },
       preset: { model: setup.model.id, effort: setup.choices.options?.effort },
-      setup: { agent: setup.entry.agent, surface, choices: setup.choices },
+      setup: {
+        agent: setup.entry.agent,
+        surface,
+        choices: {
+          ...setup.choices,
+          options: {
+            ...setup.choices.options,
+            ...(setup.entry.launchProfileId ? { launchProfileId: setup.entry.launchProfileId } : {})
+          }
+        }
+      },
       pickerEntry: setup.entry
     }
   })

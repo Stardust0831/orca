@@ -1,3 +1,4 @@
+import { isCodexLaunchProfileId } from '../../../../../shared/agent-launch/choices/codex-launch-profiles'
 import { terminalImageViewerSupported } from '../../../terminal/launch/terminal-image-viewer-env'
 /** Use ordinary user-facing terminal/chat creation; worker factories add redrive, mailbox and background-tab behavior.
  * The executor selects surface and prompt delivery; this factory supplies the wire-shaped runtime calls. */
@@ -63,8 +64,10 @@ export function agentLaunchSurfaceFactory(
       const sessionId = requested ?? createStructuredAgentSessionId(agent, randomUUID)
       const definition = structuredAgentRuntimeMetadata(agent)?.definition
       const supported = Object.fromEntries(
-        Object.entries(narrowStructuredLaunchSeedOptions(options) ?? {}).filter(([key]) =>
-          definition?.restingOptions.acceptsKey(key)
+        Object.entries(narrowStructuredLaunchSeedOptions(options) ?? {}).filter(
+          ([key, value]) =>
+            definition?.restingOptions.acceptsKey(key) ||
+            (agent === 'codex' && key === 'launchProfileId' && isCodexLaunchProfileId(value))
         )
       )
       const seeded = chatOptions ?? (Object.keys(supported).length > 0 ? supported : undefined)

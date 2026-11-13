@@ -1,3 +1,4 @@
+import { codexLaunchProfileCatalogKey } from '../../../shared/agent-launch/choices/codex-launch-profiles'
 import { createHash } from 'node:crypto'
 import type { AgentSessionRecord } from '../../../shared/agent-session/lifecycle/agent-session-record'
 import type {
@@ -12,6 +13,7 @@ import {
 /** Key by agent, account, host and optional project scope; later probes repair login/version drift. */
 export type AgentModelCatalogIdentity = {
   agent: string
+  launchProfileKey?: string
   /** Native host uses null; each WSL distro has its own CLI. */
   wslDistro: string | null
   /** Include only for catalogs whose membership varies by folder. */
@@ -34,7 +36,8 @@ export function agentModelCatalogFingerprint(identity: AgentModelCatalogIdentity
         identity.agent,
         ...parts,
         identity.wslDistro ?? '',
-        ...(identity.folder ? [identity.folder] : [])
+        ...(identity.folder ? [identity.folder] : []),
+        ...(identity.launchProfileKey ? [identity.launchProfileKey] : [])
       ])
     )
     .digest('hex')
@@ -43,17 +46,18 @@ export function agentModelCatalogFingerprint(identity: AgentModelCatalogIdentity
 /** The catalog of the account in `record.accountHome`; a session's reads and saves pass the account
  *  it runs on there, which differs from the one it was created under once the selection moved. */
 export function agentModelCatalogIdentityForRecord(
-  record: Pick<AgentSessionRecord, 'provider' | 'accountHome' | 'location'>
+  record: Pick<AgentSessionRecord, 'provider' | 'accountHome' | 'location' | 'codexLaunchProfile'>
 ): AgentModelCatalogIdentity {
   return {
     agent: record.provider,
+    launchProfileKey: codexLaunchProfileCatalogKey(record.codexLaunchProfile),
     accountHome: record.accountHome,
     wslDistro: record.location.wslDistro
   }
 }
 
 export function agentModelCatalogFingerprintForRecord(
-  record: Pick<AgentSessionRecord, 'provider' | 'accountHome' | 'location'>,
+  record: Pick<AgentSessionRecord, 'provider' | 'accountHome' | 'location' | 'codexLaunchProfile'>,
   folder?: string
 ): string {
   return agentModelCatalogFingerprint({ ...agentModelCatalogIdentityForRecord(record), folder })
@@ -61,7 +65,7 @@ export function agentModelCatalogFingerprintForRecord(
 
 /** A chat keys by the account pinned at launch; native probes cannot list a WSL-pinned one. */
 export function recordCatalogKey(
-  record: Pick<AgentSessionRecord, 'provider' | 'accountHome' | 'location'>,
+  record: Pick<AgentSessionRecord, 'provider' | 'accountHome' | 'location' | 'codexLaunchProfile'>,
   folder?: string
 ): { fingerprint: string; accountHome: AgentSessionRecord['accountHome'] | null } {
   return {
@@ -77,7 +81,8 @@ export function recordCatalogKey(
 export function agentModelCatalogSessionAccess(
   store: AgentModelCatalogStore | undefined,
   agent: { agent: string; accountHomeVariable: string },
-  accountHomePath: string | null
+  accountHomePath: string | null,
+  launchProfileKey?: string
 ): AgentModelCatalogSessionAccess | undefined {
   if (!store || !accountHomePath) {
     return undefined
@@ -86,6 +91,7 @@ export function agentModelCatalogSessionAccess(
     store,
     fingerprint: agentModelCatalogFingerprint({
       agent: agent.agent,
+      launchProfileKey,
       accountHomeVariable: agent.accountHomeVariable,
       accountHomePath,
       wslDistro: null

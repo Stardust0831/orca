@@ -1,3 +1,8 @@
+export { isAgentSessionLaunchEnv } from './agent-session-launch-env'
+import {
+  isCodexLaunchProfile,
+  type CodexLaunchProfile
+} from '../../agent-launch/choices/codex-launch-profiles'
 import { isOptionalUsageLimitContinueCancel } from './agent-session-usage-limit-continue'
 import type { AgentSessionDeathEvidence } from './agent-session-death-evidence'
 import { isAgentSessionRewindRecord, type AgentSessionRewindRecord } from './agent-session-rewind'
@@ -121,6 +126,7 @@ export type AgentSessionRecord = {
   providerHandleChain: AgentSessionProviderHandleLink[]
   providerContextBoundary?: AgentSessionProviderContextBoundary
   accountHome: AgentSessionAccountHome
+  codexLaunchProfile?: CodexLaunchProfile
   /** Where the latest proven runtime actually launched; absent before any or from older hosts. */
   launchedAccount?: AgentSessionLaunchedAccount
   /** Optional host-written construction observation; checked independently of record readability. */
@@ -156,8 +162,6 @@ export type AgentSessionRecord = {
 const MAX_ID_LENGTH = 512
 /** A death evidence's `detail` past this fails a load, so whoever writes one cuts it here. */
 export const MAX_AGENT_SESSION_DEATH_DETAIL_CHARS = MAX_ID_LENGTH
-const MAX_LAUNCH_ENV_ENTRIES = 256
-const MAX_LAUNCH_ENV_VALUE_LENGTH = 65_536
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/
 
 const isBoundedString = (value: unknown, max: number): value is string =>
@@ -227,22 +231,6 @@ export function isAgentSessionOptions(value: unknown): value is Record<string, s
     entries.every(
       ([key, option]) =>
         isBoundedString(key, MAX_ID_LENGTH) && isBoundedString(option, MAX_ID_LENGTH)
-    )
-  )
-}
-
-export function isAgentSessionLaunchEnv(value: unknown): value is AgentSessionLaunchEnv {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return false
-  }
-  const entries = Object.entries(value)
-  return (
-    entries.length <= MAX_LAUNCH_ENV_ENTRIES &&
-    entries.every(
-      ([key, entry]) =>
-        isBoundedString(key, MAX_ID_LENGTH) &&
-        typeof entry === 'string' &&
-        entry.length <= MAX_LAUNCH_ENV_VALUE_LENGTH
     )
   )
 }
@@ -317,6 +305,8 @@ export function isPersistedAgentSessionObservationRecord(
       isAgentSessionExecutionLocation(record.location) &&
       isStructuredAgentId(record.provider) &&
       isAgentSessionAccountHome(record.accountHome) &&
+      (record.codexLaunchProfile === undefined ||
+        (record.provider === 'codex' && isCodexLaunchProfile(record.codexLaunchProfile))) &&
       isOptionalAgentSessionLaunchedAccount(record.launchedAccount) &&
       (record.launchDirectory === undefined ||
         isBoundedString(record.launchDirectory, MAX_PATH_LENGTH)) &&

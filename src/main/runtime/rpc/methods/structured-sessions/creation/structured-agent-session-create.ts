@@ -1,6 +1,6 @@
+import { structuredAgentSessionCreateIntentFingerprint } from './structured-agent-session-create-fingerprint'
 import type { StructuredSessionSurface } from '../../../../agent-session/structured-agent-session-close'
 import { structuredAgentSessionTabId } from '../../../../../../shared/agent-session/view/structured-agent-session-projection'
-import { seededPermissionMode } from '../../../../../../shared/native-chat/input/native-chat-session-option-defaults'
 // Resolve the host launch identity, then commit an at-rest create or the compatible acquired path.
 
 import { assertAgentPromptRequestActive } from '../../../../terminal/input/agent-prompt-signals'
@@ -27,7 +27,10 @@ import type {
   StructuredAgentSessionFirstMessage
 } from '../../../../../../shared/agent-session/structured-agent-session-create'
 import '../../../../../native-chat/agent-session-wire/options/structured-agent-session-options-read'
-import { structuredAgentSessionOptionOverridesRefusal } from '../../../../../native-chat/agent-session-wire/options/structured-agent-session-option-intent'
+import {
+  structuredAgentSessionCreateOptionPicks,
+  structuredAgentSessionOptionOverridesRefusal
+} from '../../../../../native-chat/agent-session-wire/options/structured-agent-session-option-intent'
 import type { StructuredAgentSessionCreateOptions } from '../../../../../native-chat/agent-session-wire/acquisition/structured-agent-session-create'
 import type { OrcaRuntimeService } from '../../../../orca-runtime'
 import {
@@ -51,33 +54,7 @@ export type PreparedStructuredAgentSessionCreate = {
   atRest?: { firstMessage?: StructuredAgentSessionFirstMessage }
 }
 
-/** New creates keep the immutable client intent in the ledger; legacy creates keep attach identity. */
-export function structuredAgentSessionCreateIntentFingerprint(params: {
-  envelope: AgentSessionMutationEnvelope
-  worktree: string
-  agent: string
-  forkFrom?: { sessionId: string; throughItemId: string }
-  resumeFrom?: StructuredAgentSessionResumeSource
-  tabId?: string
-  firstMessage?: StructuredAgentSessionFirstMessage
-  optionsMode?: 'replace-model-selection'
-  options?: Readonly<Record<string, string>>
-}): string {
-  return computeAgentSessionPayloadFingerprint({
-    method: 'agentSession.create',
-    sessionId: params.envelope.sessionId,
-    fields: {
-      worktree: params.worktree,
-      agent: params.agent,
-      resumeFrom: params.resumeFrom,
-      forkFrom: params.forkFrom,
-      tabId: params.tabId,
-      firstMessage: params.firstMessage,
-      optionsMode: params.optionsMode,
-      options: params.options
-    }
-  })
-}
+export { structuredAgentSessionCreateIntentFingerprint } from './structured-agent-session-create-fingerprint'
 
 /** Run throwing pre-commit work inside resolveUncommittedStructuredCreate so clients receive a no-effects refusal. */
 export async function prepareStructuredAgentSessionCreateForWorktree(args: {
@@ -121,6 +98,7 @@ export async function prepareStructuredAgentSessionCreateForWorktree(args: {
     worktree: args.worktree,
     agent: args.agent,
     callerKey: args.caller.callerKey,
+    ...(args.options?.launchProfileId ? { launchProfileId: args.options.launchProfileId } : {}),
     structuredAgentCliSourceEvidence,
     ...(args.resumeFrom ? { resumeFrom: args.resumeFrom } : {}),
     ...(args.forkFrom ? { forkFrom: args.forkFrom } : {})
@@ -149,7 +127,8 @@ export async function prepareStructuredAgentSessionCreateForWorktree(args: {
     const refusal = structuredAgentSessionOptionOverridesRefusal(
       host.deps.agents,
       args.agent,
-      args.options
+      args.options,
+      true
     )
     if (refusal) {
       throw new AgentSessionRefusalError(refusal)
@@ -160,11 +139,12 @@ export async function prepareStructuredAgentSessionCreateForWorktree(args: {
   const overlays = atRest
     ? args.optionsMode !== 'replace-model-selection'
     : Object.keys(args.options ?? {}).every((id) => id === AGENT_CHAT_PERMISSION_MODE_OPTION_ID)
-  const picked = args.options
-    ? overlays
-      ? { ...resolved.options, ...args.options }
-      : { ...seededPermissionMode(resolved.options), ...args.options }
-    : resolved.options
+  const picked = structuredAgentSessionCreateOptionPicks(
+    args.options,
+    resolved.options,
+    overlays,
+    resolved.codexLaunchProfile?.model
+  )
   return {
     host,
     ...(hostLaunchDirectory ? { hostLaunchDirectory } : {}),

@@ -1,3 +1,4 @@
+import type { CodexStructuredLaunch } from '../launch/codex-structured-launch-types'
 import type { CodexProviderInvocationDeps } from './codex-provider-session-rename'
 import type { CodexAppliedSettings } from '../catalog/codex-structured-applied-settings'
 import type { StructuredAgentSessionChildWorkProducer } from '../../../native-chat/agent-session-wire/observations/structured-agent-session-subagent-rows'
@@ -23,12 +24,10 @@ import type { CodexBackgroundTaskTracker } from '../background-work/codex-backgr
 import type { CodexSkillReport } from '../catalog/codex-structured-skill-report'
 import type { CodexJournalTranslator } from '../journal/codex-structured-journal-contracts'
 import type { StructuredAgentSessionLifecycleEvent } from '../../../native-chat/agent-session-wire/providers/structured-agent-session-adapter'
-import type { CodexStructuredPermissionPolicy } from '../../../../shared/codex-permission-policy'
 import type { StructuredLaunchRequest } from '../../../runtime/agent-session/launch/structured-agent-launch-composition'
 import type { AgentModelCatalogStore } from '../../../native-chat/agent-model-catalog/agent-model-catalog-store'
 import type { AgentModelCatalogSessionAccess } from '../../../native-chat/agent-model-catalog/agent-model-catalog-lister'
 import type { StructuredAgentSessionProviderOpen } from '../../../native-chat/agent-session-wire/startup/structured-agent-session-provider-open-contract'
-import type { NativeChatVisualsLaunch } from '../../../native-chat/conversation-files/native-chat-visuals-delivery'
 import type { AgentChatPermissionChoice } from '../../../../shared/agent-launch/permissions/agent-chat-permission-mode'
 import type { CodexSandboxPolicy } from '../launch/codex-structured-sandbox-policy'
 import type { StructuredAgentSessionEventSink } from '../../../native-chat/agent-session-wire/journal-ingress/structured-agent-session-event-sink'
@@ -38,25 +37,7 @@ export type CodexSessionCatalogAccess = AgentModelCatalogSessionAccess & {
   demand?: (legacy?: boolean) => Promise<unknown>
 }
 
-export type CodexStructuredLaunch = {
-  prefixArgs?: readonly string[]
-  command: string
-  args: string[]
-  cwd: string
-  codexHome: string | null
-  resumeThreadId: string | null
-  /** Replace an unsaved thread created by this session; never supersede a proven resume. */
-  supersedeIfUnsaved?: boolean
-  permissionPolicy?: CodexStructuredPermissionPolicy
-  /** Open on the chosen model to avoid a first-turn switch. */
-  model?: string
-  /** Sealed child environment; envToDelete removes inherited keys. */
-  env?: Record<string, string>
-  envToDelete?: readonly string[]
-  /** Command values that must survive the user's shell environment policy. */
-  commandEnv?: Record<string, string>
-  visuals?: NativeChatVisualsLaunch
-}
+export type { CodexStructuredLaunch } from '../launch/codex-structured-launch-types'
 
 /** Boundaries retain host receipt time through buffering and retries. */
 export const CODEX_RECEIPT_TIMED_METHODS: ReadonlySet<string> = new Set([

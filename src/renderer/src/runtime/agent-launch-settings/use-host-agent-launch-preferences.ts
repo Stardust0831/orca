@@ -28,6 +28,7 @@ function preferencesForWorkspace(state: AppState, workspace: ProspectiveWorkspac
   const desktop: AgentLaunchPreferences = {
     defaultTuiAgent: state.settings?.defaultTuiAgent,
     disabledTuiAgents: state.settings?.disabledTuiAgents,
+    codexLaunchProfiles: state.settings?.codexLaunchProfiles,
     ...(state.settings?.agentLaunchChoices !== undefined
       ? { agentLaunchChoices: state.settings.agentLaunchChoices }
       : {})
@@ -160,7 +161,8 @@ export function useHostAgentMenuSettings(
       {
         defaultTuiAgent: desktopSettings?.defaultTuiAgent,
         disabledTuiAgents: desktopSettings?.disabledTuiAgents,
-        agentLaunchChoices: desktopSettings?.agentLaunchChoices
+        agentLaunchChoices: desktopSettings?.agentLaunchChoices,
+        codexLaunchProfiles: desktopSettings?.codexLaunchProfiles
       },
       snapshot
     )
@@ -168,6 +170,7 @@ export function useHostAgentMenuSettings(
       preferences.defaultTuiAgent,
       preferences.disabledTuiAgents,
       preferences.agentLaunchChoices,
+      preferences.codexLaunchProfiles,
       preferences.agentDefaultArgs,
       preferences.agentPermissionDefault,
       preferences.agentPermissionOverrides,
@@ -178,6 +181,7 @@ export function useHostAgentMenuSettings(
     defaultTuiAgent,
     disabledTuiAgents,
     agentLaunchChoices,
+    codexLaunchProfiles,
     agentDefaultArgs,
     agentPermissionDefault,
     agentPermissionOverrides,
@@ -200,6 +204,7 @@ export function useHostAgentMenuSettings(
       defaultTuiAgent,
       disabledTuiAgents,
       agentLaunchChoices,
+      codexLaunchProfiles,
       agentDefaultArgs,
       agentPermissionDefault,
       agentPermissionOverrides,

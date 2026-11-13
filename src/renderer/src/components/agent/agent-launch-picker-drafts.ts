@@ -11,6 +11,7 @@ import {
 import { sameAgentPickerSetupSource as sameSource } from './agent-launch-picker-setup-source'
 import {
   agentPickerDraft,
+  agentPickerEntryId,
   type AgentPickerDraft,
   type AgentPickerDraftOwner,
   type AgentPickerEntry
@@ -87,7 +88,7 @@ export function useAgentPickerSetup({
 }) {
   const currentSurface = surface ?? initial?.surface
   const [, publish] = useReducer((version: number) => version + 1, 0)
-  const key = JSON.stringify([entry.draftTarget?.key, entry.agent, draftId])
+  const key = JSON.stringify([entry.draftTarget?.key, agentPickerEntryId(entry), draftId])
   const launchKey = nativeChatLaunchPromptDraftScopeKey(
     entry.worktreeId ?? '',
     entry.agent,
@@ -102,7 +103,7 @@ export function useAgentPickerSetup({
     [preset, mode, initial?.choices.model, initial?.choices.options?.effort]
   )
   // Original parsed preset identity is independent of edited choices and changing defaults.
-  const slot = preset
+  const setupSlot = preset
     ? JSON.stringify({
         model: preset.model,
         ...(preset.effort !== undefined ? { options: { effort: preset.effort } } : {})
@@ -110,6 +111,9 @@ export function useAgentPickerSetup({
     : initial && mode === 'launch'
       ? JSON.stringify(initial.choices)
       : ''
+  const slot = entry.launchProfileId
+    ? JSON.stringify([entry.launchProfileId, setupSlot])
+    : setupSlot
   const read = useCallback(
     () =>
       mode === 'launch'

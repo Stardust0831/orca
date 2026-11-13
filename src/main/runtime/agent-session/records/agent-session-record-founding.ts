@@ -15,6 +15,7 @@ export type AgentSessionRecordIdentity = Pick<
   | 'location'
   | 'provider'
   | 'accountHome'
+  | 'codexLaunchProfile'
   | 'options'
   | 'launchArgs'
   | 'launchDirectory'
@@ -36,6 +37,9 @@ export function agentSessionRecordIdentityFields(
     location: identity.location,
     provider: identity.provider,
     accountHome: identity.accountHome,
+    ...(identity.codexLaunchProfile
+      ? { codexLaunchProfile: { ...identity.codexLaunchProfile } }
+      : {}),
     ...(identity.forkedFrom ? { forkedFrom: identity.forkedFrom } : {}),
     ...(Object.keys(options).length > 0 ? { options } : {}),
     ...(permissionMode ? { permissionMode } : {}),

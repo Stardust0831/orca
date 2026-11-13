@@ -1,3 +1,8 @@
+import {
+  requireCodexLaunchProfile,
+  codexLaunchProfileArgs,
+  CODEX_PROFILE_HOME_ENV
+} from '../choices/codex-launch-profiles'
 import type { GlobalSettings } from '../../global-settings-types'
 import type { SessionOptionValue } from '../../native-chat/input/native-chat-session-options'
 import type { TuiAgent } from '../catalog/tui-agent'
@@ -5,7 +10,11 @@ import {
   agentLaunchPermissionSettings,
   resolveTuiAgentLaunchEnv
 } from '../choices/tui-agent-launch-defaults'
-import { resolveStartupShell, type AgentStartupShell } from './tui-agent-startup-shell'
+import {
+  quoteStartupArg,
+  resolveStartupShell,
+  type AgentStartupShell
+} from './tui-agent-startup-shell'
 import { terminalSessionOptionInputs } from './tui-agent-launch-command'
 import { resolveLocalWindowsAgentStartupShell } from '../../windows-terminal-shell'
 
@@ -14,6 +23,7 @@ export type AgentStartupSettings = Partial<
   Pick<
     GlobalSettings,
     | 'agentCmdOverrides'
+    | 'codexLaunchProfiles'
     | 'agentDefaultArgs'
     | 'agentLaunchChoices'
     | 'agentDefaultEnv'
@@ -55,7 +65,22 @@ export function resolveAgentStartupPlanInputs(args: {
   suppressStartupUpdatePrompt?: boolean
 }): AgentStartupPlanInputs {
   const { agent, platform, isRemote, sessionOptions } = args
-  const settings = agentLaunchPermissionSettings(agent, args.settings, sessionOptions)
+  const profileId = sessionOptions?.launchProfileId
+  const profile =
+    profileId !== undefined
+      ? requireCodexLaunchProfile(
+          agent === 'codex' ? args.settings.codexLaunchProfiles : [],
+          profileId
+        )
+      : undefined
+  const profileSettings = profile
+    ? {
+        ...args.settings,
+        agentLaunchChoices: undefined,
+        agentDefaultArgs: { ...args.settings.agentDefaultArgs, codex: '' }
+      }
+    : args.settings
+  const settings = agentLaunchPermissionSettings(agent, profileSettings, sessionOptions)
   const shell =
     args.shell ??
     resolveLocalWindowsAgentStartupShell({
@@ -73,6 +98,14 @@ export function resolveAgentStartupPlanInputs(args: {
     extraAgentArgs: args.extraAgentArgs,
     shell: resolveStartupShell(platform, shell)
   })
+  const profileArgs = profile
+    ? codexLaunchProfileArgs({
+        ...profile,
+        model: typeof sessionOptions?.model === 'string' ? undefined : profile.model
+      })
+        .map((arg) => quoteStartupArg(arg, resolveStartupShell(platform, shell)))
+        .join(' ')
+    : ''
   return {
     agent,
     cmdOverrides: settings.agentCmdOverrides ?? {},
@@ -83,6 +116,16 @@ export function resolveAgentStartupPlanInputs(args: {
     isRemote,
     sessionOptionsOverrideAgentArgs: false,
     ...options,
+    ...(profile
+      ? {
+          agentArgs: [options.agentArgs, profileArgs].filter(Boolean).join(' '),
+          agentEnv: {
+            ...resolveTuiAgentLaunchEnv(agent, settings, platform),
+            CODEX_HOME: profile.homePath,
+            [CODEX_PROFILE_HOME_ENV]: profile.homePath
+          }
+        }
+      : {}),
     ...(args.suppressStartupUpdatePrompt ? { suppressStartupUpdatePrompt: true } : {})
   }
 }
