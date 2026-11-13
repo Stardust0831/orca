@@ -1,3 +1,4 @@
+import { normalizeCodexLaunchProfiles, type CodexLaunchProfile } from './codex-launch-profiles'
 import { resolveLocalWindowsAgentStartupShell } from '../../windows-terminal-shell'
 import { resolveStartupShell } from '../startup/tui-agent-startup-shell'
 import { agentPermissionHostPlatform } from '../permissions/agent-permission-env'
@@ -47,6 +48,7 @@ export type AgentLaunchSettingsSource = Partial<
     | 'newWorkspaceSetupOnly'
     | 'disabledTuiAgents'
     | 'agentCmdOverrides'
+    | 'codexLaunchProfiles'
     | 'agentLaunchChoices'
     | 'agentDefaultArgs'
     | 'agentDefaultEnv'
@@ -61,6 +63,7 @@ export type AgentLaunchSettings = {
   defaultTuiAgent: GlobalSettings['defaultTuiAgent']
   newWorkspaceSetupOnly?: boolean
   disabledTuiAgents: TuiAgent[]
+  codexLaunchProfiles?: GlobalSettings['codexLaunchProfiles']
   agentCmdOverrides: NonNullable<GlobalSettings['agentCmdOverrides']>
   agentDefaultArgs: NonNullable<GlobalSettings['agentDefaultArgs']>
   environmentNames: Partial<Record<TuiAgent, string[]>>
@@ -80,6 +83,7 @@ export type AgentLaunchSettings = {
 export type AgentLaunchSettingsMutation =
   | { type: 'default'; agent: GlobalSettings['defaultTuiAgent']; setupOnly?: boolean }
   | { type: 'availability'; agent: TuiAgent; enabled: boolean }
+  | { type: 'codex-profiles'; profiles: CodexLaunchProfile[] }
   | {
       type: 'permissions'
       mode: Exclude<AgentPermissionMode, 'mixed'>
@@ -125,6 +129,7 @@ export function projectAgentLaunchSettings(
     newWorkspaceSetupOnly: false,
     disabledTuiAgents: normalizeDisabledTuiAgents(settings.disabledTuiAgents),
     agentCmdOverrides: { ...settings.agentCmdOverrides },
+    codexLaunchProfiles: settings.codexLaunchProfiles ?? [],
     agentDefaultArgs: normalizeTuiAgentArgsRecord(composed.agentDefaultArgs),
     environmentNames: Object.fromEntries(
       Object.entries(composed.agentDefaultEnv).map(([agent, env]) => [
@@ -182,6 +187,8 @@ export function agentLaunchSettingsMutationUpdates(
     })
   )
   switch (mutation.type) {
+    case 'codex-profiles':
+      return { codexLaunchProfiles: normalizeCodexLaunchProfiles(mutation.profiles) }
     case 'default':
       return buildDefaultAgentSettingsUpdate(mutation.agent)
     case 'availability':

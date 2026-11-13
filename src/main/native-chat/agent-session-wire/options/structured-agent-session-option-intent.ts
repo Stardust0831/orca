@@ -1,3 +1,5 @@
+import { seededPermissionMode } from '../../../../shared/native-chat/input/native-chat-session-option-defaults'
+import { isCodexLaunchProfileId } from '../../../../shared/agent-launch/choices/codex-launch-profiles'
 import {
   IN_PROCESS_OPTIONS_READER,
   type StructuredAgentSessionOptionsReader
@@ -39,10 +41,17 @@ function acceptsOptionPick(
 export function structuredAgentSessionOptionOverridesRefusal(
   agents: Pick<StructuredAgentRegistry, 'definition'>,
   provider: string,
-  options: Readonly<Record<string, string>>
+  options: Readonly<Record<string, string>>,
+  launch = false
 ) {
   const key = Object.keys(options).find(
-    (key) => !acceptsOptionPick(agents, provider, key, options[key] ?? '')
+    (key) =>
+      !(
+        launch &&
+        provider === 'codex' &&
+        key === 'launchProfileId' &&
+        isCodexLaunchProfileId(options[key])
+      ) && !acceptsOptionPick(agents, provider, key, options[key] ?? '')
   )
   return key === undefined
     ? null
@@ -102,4 +111,19 @@ export async function recordStructuredAgentSessionOptionIntent(
         structuredAgentSessionPickReply(options, undefined)
     }
   }
+}
+
+export function structuredAgentSessionCreateOptionPicks(
+  requested: Readonly<Record<string, string>> | undefined,
+  seeds: Readonly<Record<string, string>> | undefined,
+  overlays: boolean,
+  profileModel?: string
+): Record<string, string> | undefined {
+  const options = requested
+    ? Object.fromEntries(Object.entries(requested).filter(([key]) => key !== 'launchProfileId'))
+    : undefined
+  const picked = options
+    ? { ...(overlays ? seeds : seededPermissionMode(seeds)), ...options }
+    : seeds
+  return profileModel ? { model: profileModel, ...picked } : picked
 }

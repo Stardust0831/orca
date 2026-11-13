@@ -1,13 +1,33 @@
+import { agentSessionRefusalError } from '../../../shared/agent-session/failures/agent-session-wire-refusals'
 import type { StructuredAgentId } from '../../../shared/agent-session/lifecycle/agent-session-provider-handle'
 import { structuredAgentRuntimeMetadata } from '../agent-session/installation/structured-agent-runtime-metadata'
 import { getProfileUserDataPath } from '../../orca-profiles/profile-storage-paths'
 import { resolveHostStructuredAgentLaunchEnvironment } from '../agent-session/launch/structured-agent-launch-support'
-import { agentWorkspaceTrustDecisionForWorkspace } from '../../agent-launch/trust/agent-workspace-trust-spawn'
+import {
+  applyStructuredCodexWorkspaceTrust,
+  agentWorkspaceTrustDecisionForWorkspace
+} from '../../agent-launch/trust/agent-workspace-trust-spawn'
 import { OrcaRuntimeWithStructuredSessionCliWriterHost } from './structured-session-cli-writer-host'
 import type { AgentSessionAccountHome } from '../../../shared/agent-session/lifecycle/agent-session-account-home'
 import type { AgentSessionRecord } from '../../../shared/agent-session/lifecycle/agent-session-record'
 
 export abstract class OrcaRuntimeWithStructuredSessionAccountHome extends OrcaRuntimeWithStructuredSessionCliWriterHost {
+  /** Resolve catalog account home through the same host create-intent resolver when no session record exists. */
+  async resolveStructuredAgentAccountHome(
+    agent: StructuredAgentId
+  ): Promise<AgentSessionAccountHome> {
+    const resolveAccountHome = this.structuredAgentAccountHomeResolver(agent, '', 'read')
+    if (!resolveAccountHome) {
+      throw agentSessionRefusalError('structured_agent_session_unsupported', {
+        reason: 'hostUnsupported'
+      })
+    }
+    // A read, not a launch: only the account push is awaited, never a folder refresh.
+    await this.accounts.prepareHostAgentLaunch(null)
+    const launchEnv = this.structuredAgentLaunchEnv(agent, this.requireStore().getSettings())
+    return resolveAccountHome({ launchEnv, location: null })
+  }
+
   /** Resolve account home through this host's agent registration; null means unregistered and create refuses. */
   protected structuredAgentAccountHomeResolver(
     agent: StructuredAgentId,
@@ -61,6 +81,9 @@ export abstract class OrcaRuntimeWithStructuredSessionAccountHome extends OrcaRu
     record: AgentSessionRecord,
     purpose: 'read' | 'identity' = 'read'
   ): Promise<AgentSessionAccountHome | null> {
+    if (record.codexLaunchProfile) {
+      return record.accountHome
+    }
     const { provider, location } = record
     if (!structuredAgentRuntimeMetadata(provider)?.launchFollowsSelection?.()) {
       return null
@@ -75,6 +98,23 @@ export abstract class OrcaRuntimeWithStructuredSessionAccountHome extends OrcaRu
     record: AgentSessionRecord,
     launchDirectory: string
   ): Promise<AgentSessionAccountHome | null> {
+    if (record.codexLaunchProfile) {
+      const settings = this.requireStore().getSettings()
+      await applyStructuredCodexWorkspaceTrust({
+        workspacePath: launchDirectory,
+        launchEnv: this.structuredAgentLaunchEnv(record.provider, settings),
+        codexHome: record.codexLaunchProfile.homePath,
+        settings,
+        repoDecision:
+          record.location.workspaceKind === 'folder'
+            ? undefined
+            : agentWorkspaceTrustDecisionForWorkspace(
+                record.location.workspaceId,
+                this.requireStore()
+              )
+      })
+      return record.accountHome
+    }
     const { provider, location } = record
     if (!structuredAgentRuntimeMetadata(provider)?.launchFollowsSelection?.()) {
       return null

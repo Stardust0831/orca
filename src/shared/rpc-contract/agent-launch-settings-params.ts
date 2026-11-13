@@ -1,3 +1,7 @@
+import {
+  isCodexLaunchProfile,
+  type CodexLaunchProfile
+} from '../agent-launch/choices/codex-launch-profiles'
 import * as z from 'zod'
 import { isTuiAgent } from '../agent-launch/catalog/tui-agent-config'
 import { AGENT_PERMISSION_CHOICES } from '../agent-launch/permissions/tui-agent-permission-choice'
@@ -34,6 +38,12 @@ const Name = z
   .regex(/^[A-Za-z_][A-Za-z0-9_]*$/, 'Invalid variable name')
 
 export const AgentLaunchSettingsMutation = z.discriminatedUnion('type', [
+  z
+    .object({
+      type: z.literal('codex-profiles'),
+      profiles: z.array(z.custom<CodexLaunchProfile>(isCodexLaunchProfile)).max(64)
+    })
+    .strict(),
   z
     .object({
       type: z.literal('default'),

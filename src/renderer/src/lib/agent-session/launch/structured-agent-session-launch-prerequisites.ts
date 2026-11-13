@@ -115,7 +115,13 @@ export function createLegacyPrerequisites(
         enroll(key, operation.value, requested?.[key] !== undefined, operation)
       }
       const value = compatible?.[key]
-      if (value !== undefined && !context.has(key) && !direct.has(key) && key !== 'fastMode') {
+      if (
+        value !== undefined &&
+        !context.has(key) &&
+        !direct.has(key) &&
+        key !== 'fastMode' &&
+        key !== 'launchProfileId'
+      ) {
         if (!pending) {
           direct.add(key)
           enroll(key, value, requested?.[key] !== undefined)

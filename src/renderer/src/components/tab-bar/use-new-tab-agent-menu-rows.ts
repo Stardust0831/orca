@@ -125,6 +125,7 @@ export function useAgentMenuObservation(
       state.settings?.agentDefaultSurface,
       state.settings?.nativeChatProviders,
       state.settings?.agentDefaultArgs,
+      state.settings?.codexLaunchProfiles,
       state.settings?.agentPermissionDefault,
       state.settings?.agentPermissionOverrides,
       state.settings?.nativeChatSessionOptions,

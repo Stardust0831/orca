@@ -75,6 +75,7 @@ export class RuntimeClientSettingsController {
       agentCmdOverrides: settings.agentCmdOverrides ?? {},
       agentDefaultArgs: launchProfile.agentDefaultArgs,
       agentDefaultEnv: launchProfile.agentDefaultEnv,
+      codexLaunchProfiles: settings.codexLaunchProfiles ?? [],
       agentStatusHooksEnabled: settings.agentStatusHooksEnabled !== false,
       // Always present, so a client can tell this host accepts the setting (older hosts omit it).
       codexShareHistoryAcrossAccounts: settings.codexShareHistoryAcrossAccounts !== false,

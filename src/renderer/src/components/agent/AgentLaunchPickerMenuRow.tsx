@@ -15,6 +15,7 @@ import { chatUnavailableLabel } from '../tab-bar/tab-agent-row-presentation'
 import type { NewTabAgentMenuRow } from '../../../../shared/agent-launch/picker/agent-launch-picker-rows'
 import {
   agentPickerDraft,
+  agentPickerEntryId,
   type AgentPickerDraft,
   type AgentPickerEntry,
   type AgentPickerSurface
@@ -70,6 +71,7 @@ export const AgentPickerMenuRow = memo(function AgentPickerMenuRow({
     setup: {
       id: string
       agent: AgentPickerEntry['agent']
+      entryId: string
       preset?: AgentPickerSetupIdentity
       label: string
     } | null
@@ -122,7 +124,11 @@ export const AgentPickerMenuRow = memo(function AgentPickerMenuRow({
           onSelect={(event) => {
             onSelectAgent?.(entry.agent)
             if (
-              runLaunch(pickerLaunchRow(entry, selected?.surface ?? entry.defaultSurface)) === false
+              runLaunch(
+                pickerLaunchRow(entry, selected?.surface ?? entry.defaultSurface),
+                entry.launchProfileId ? agentPickerDraft(entry, selected?.surface) : undefined,
+                entry
+              ) === false
             ) {
               event.preventDefault()
             }
@@ -155,7 +161,17 @@ export const AgentPickerMenuRow = memo(function AgentPickerMenuRow({
       disabled={disabled || setupDisabled || !entry.surfaces.length}
       onOpenChange={(next) => {
         if (next || openSetup === setupId) {
-          onSetupOpenChange(next ? { id: setupId, agent: entry.agent, preset, label } : null)
+          onSetupOpenChange(
+            next
+              ? {
+                  id: setupId,
+                  agent: entry.agent,
+                  entryId: agentPickerEntryId(entry),
+                  preset,
+                  label
+                }
+              : null
+          )
         }
         if (next && openSetup !== setupId) {
           onSelectAgent?.(entry.agent)
@@ -186,7 +202,10 @@ export const AgentPickerMenuRow = memo(function AgentPickerMenuRow({
             if (disabled || launchBlocked || !entry.surfaces.length) {
               return
             }
-            const draft = initial ?? (mode === 'select' ? selected : undefined)
+            const draft =
+              initial ??
+              (mode === 'select' ? selected : undefined) ??
+              (entry.launchProfileId ? agentPickerDraft(entry) : undefined)
             const surface = draft?.surface ?? entry.defaultSurface
             const row = draft
               ? pickerLaunchRow(entry, surface)

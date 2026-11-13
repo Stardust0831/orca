@@ -1,6 +1,10 @@
 import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import { useAppViewExternalStore } from '@/store/retained-views/app-state-view'
-import type { AgentPickerEntry } from '../../../../shared/agent-launch/picker/agent-launch-picker'
+import { useMemo } from 'react'
+import {
+  expandCodexPickerEntries,
+  type AgentPickerEntry
+} from '../../../../shared/agent-launch/picker/agent-launch-picker'
 
 /**
  * Live picker entries for one (inventory key, open) generation. Catalog and seed reads land one
@@ -43,7 +47,8 @@ export function createAgentPickerInventorySource(
 export function useAgentPickerInventoryEntries(
   source: AgentPickerInventorySource
 ): AgentPickerEntry[] {
-  return useAppViewExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot)
+  const entries = useAppViewExternalStore(source.subscribe, source.getSnapshot, source.getSnapshot)
+  return useMemo(() => expandCodexPickerEntries(entries), [entries])
 }
 
 export type AgentPickerAcquisitionObserver = {

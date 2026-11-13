@@ -51,7 +51,8 @@ export const STRUCTURED_LAUNCH_SEED_OPTION_IDS = [
   'model',
   'effort',
   'fastMode',
-  'serviceTier'
+  'serviceTier',
+  'launchProfileId'
 ] as const
 
 /** What a launch may hold and a create may seed; the permission mode never rewrites the selection. */
@@ -230,6 +231,7 @@ export function structuredLaunchRequestedOptions(selection: {
   return {
     ...(permissionMode ? { [AGENT_CHAT_PERMISSION_MODE_OPTION_ID]: permissionMode } : {}),
     ...(explicit.interactionMode ? { interactionMode: explicit.interactionMode } : {}),
+    ...(explicit.launchProfileId ? { launchProfileId: explicit.launchProfileId } : {}),
     ...(changed ? {} : explicit),
     ...held
   }

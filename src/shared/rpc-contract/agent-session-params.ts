@@ -58,6 +58,10 @@ export const Placement = z
 
 export const LaunchPreferences = z
   .object({
+    launchProfileId: z
+      .string()
+      .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/)
+      .optional(),
     model: StrictNonEmptyString(
       MAX_LAUNCH_PREFERENCE_LENGTH,
       'Invalid model preference'

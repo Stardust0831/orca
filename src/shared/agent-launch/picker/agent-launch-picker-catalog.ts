@@ -21,7 +21,10 @@ import { classifyAgentModels } from '../../legacy-agent-models'
 
 type ModelMenuEntry = Pick<AgentPickerEntry, 'agent' | 'catalog'> &
   Partial<
-    Pick<AgentPickerEntry, 'defaultSurface' | 'textGeneration' | 'catalogRead' | 'coherentCatalog'>
+    Pick<
+      AgentPickerEntry,
+      'defaultSurface' | 'textGeneration' | 'catalogRead' | 'coherentCatalog' | 'codexLaunchProfile'
+    >
   >
 
 export function agentPickerOptions(
@@ -128,7 +131,9 @@ export function agentPickerModelMenu(
   return modelMenuOptions(entry.catalog, {
     agent: entry.agent,
     surface: entry.textGeneration ? 'textGeneration' : surface,
-    seed: getAgentSessionOptionLaunchCatalog(entry.agent) ?? { models: [], modelApply: {} },
+    seed: entry.codexLaunchProfile
+      ? { models: [], modelApply: {} }
+      : (getAgentSessionOptionLaunchCatalog(entry.agent) ?? { models: [], modelApply: {} }),
     pending: entry.catalogRead === 'pending',
     coherentCatalog: entry.coherentCatalog,
     newLaunch: true,
@@ -141,6 +146,10 @@ export function agentPickerModels(
   entry: ModelMenuEntry,
   surface: AgentPickerSurface = entry.defaultSurface ?? 'terminal'
 ): AgentPickerModel[] {
+  if (entry.codexLaunchProfile) {
+    const model = entry.codexLaunchProfile.model
+    return model ? [{ id: model, label: model, isDefault: true, efforts: [] }] : []
+  }
   if (!agentPickerUsesComposerModelMenu(entry, surface)) {
     if (entry.catalog.origin !== 'unknown') {
       return withLegacyModels(entry.agent, entry.catalog.models)

@@ -44,6 +44,7 @@ import {
 } from './agent-launch-picker-acquisition'
 import {
   agentPickerChoiceSeeds,
+  agentPickerSettingsIdentity,
   type AgentPickerDefaultSettings
 } from '../../../../shared/agent-launch/picker/agent-launch-picker-defaults'
 import {
@@ -191,14 +192,7 @@ export function useAgentLaunchPickerInventorySource(
         model.state === 'settled' ? model.rows : [],
         model.state === 'settled' ? model.detection.detectedIds : [],
         model.state === 'settled' ? model.defaultTuiAgent : undefined,
-        settings && {
-          agentDefaultArgs: settings.agentDefaultArgs,
-          agentLaunchChoices: settings.agentLaunchChoices,
-          agentPermissionDefault: settings.agentPermissionDefault,
-          agentPermissionOverrides: settings.agentPermissionOverrides,
-          nativeChatSessionOptions: settings.nativeChatSessionOptions,
-          nativeChatPermissionMode: settings.nativeChatPermissionMode
-        }
+        agentPickerSettingsIdentity(settings)
       ]),
     [
       context,
@@ -235,7 +229,7 @@ export function useAgentLaunchPickerInventorySource(
   const fallback = useMemo(
     () =>
       target?.kind === 'environment'
-        ? build({}).map((entry) => ({
+        ? build({ codexLaunchProfiles: settings?.codexLaunchProfiles }).map((entry) => ({
             ...entry,
             terminal: {},
             structured: {},

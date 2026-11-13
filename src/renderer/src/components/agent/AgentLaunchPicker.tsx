@@ -165,7 +165,10 @@ export const AgentLaunchPicker = memo(
         onCatalogOpen?.(catalogAgent)
       }
     }, [catalogAgent, onCatalogOpen])
-    const entry = entries.find((entry) => entry.agent === agent)
+    const entry = entries.find(
+      (entry) =>
+        entry.agent === agent && entry.launchProfileId === value?.choices.options?.launchProfileId
+    )
     const draft = entry ? (value ?? draftForEntry?.(entry)) : undefined
     const choices = entry
       ? agentPickerPanelArguments(entry, draft ?? agentPickerDraft(entry)).choices
@@ -177,11 +180,13 @@ export const AgentLaunchPicker = memo(
           )?.label
         : undefined) ?? choices?.model
     const summary = [modelLabel, choices?.options?.effort].filter(Boolean).join(' · ')
-    const agentLabel = agent
-      ? cli
-        ? rowLabel({ kind: 'cli', agent }, t)
-        : getAgentLabel(agent)
-      : (emptyLabel ?? t('agentPicker.select', 'Select agent'))
+    const agentLabel = entry?.launchProfileId
+      ? entry.label
+      : agent
+        ? cli
+          ? rowLabel({ kind: 'cli', agent }, t)
+          : getAgentLabel(agent)
+        : (emptyLabel ?? t('agentPicker.select', 'Select agent'))
     return (
       <div className="space-y-2">
         <DropdownMenu open={open} onOpenChange={setOpen}>

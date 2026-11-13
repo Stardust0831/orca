@@ -1,4 +1,9 @@
 import {
+  codexLaunchProfileArgs,
+  type CodexLaunchProfile
+} from '../../../../shared/agent-launch/choices/codex-launch-profiles'
+import { resolveCodexLaunchProfileHome } from '../../configuration/homes/codex-launch-profile-home'
+import {
   assertStructuredAgentResolutionCurrent,
   type StructuredAgentResolutionOperation
 } from '../../../native-chat/agent-launch/structured-agent-command-resolution'
@@ -58,10 +63,15 @@ export function createCodexModelCatalogProbe(
     cwd?: string,
     lookup: AgentModelCatalogLookup = 'recover',
     operation?: StructuredAgentResolutionOperation,
-    launchDirectory = cwd
+    launchDirectory = cwd,
+    codexLaunchProfile?: CodexLaunchProfile
   ) => {
     assertStructuredAgentResolutionCurrent(operation)
-    const accountHomePath = requireLegacyAgentSessionAccountHome(accountHome).path
+    const profile = codexLaunchProfile
+      ? await resolveCodexLaunchProfileHome(codexLaunchProfile)
+      : undefined
+    const accountHomePath =
+      profile?.homePath ?? requireLegacyAgentSessionAccountHome(accountHome).path
     const overlay = overlayEnvironmentVariables({}, deps.resolveEnv?.(), process.platform)
     const readEnvironment =
       lookup === 'saved' ? deps.resolveSavedEnvironment : deps.resolveEnvironment
@@ -76,7 +86,11 @@ export function createCodexModelCatalogProbe(
     assertStructuredAgentResolutionCurrent(operation)
     const userArgs = [
       ...prefixArgs,
-      ...(cwd ? codexStructuredLaunchArgs((await deps.resolveLaunchArgs?.()) ?? []) : [])
+      ...(profile
+        ? codexLaunchProfileArgs(profile)
+        : cwd
+          ? codexStructuredLaunchArgs((await deps.resolveLaunchArgs?.()) ?? [])
+          : [])
     ]
     // A command line that may name files relative to the chat's folder runs there, with that
     // folder untrusted so its project config never replaces the account's list. No root markers
@@ -105,7 +119,9 @@ export function createCodexModelCatalogProbe(
       ): Promise<AgentModelCatalogSuccess> => {
         assertStructuredAgentResolutionCurrent(runOperation)
         signal?.throwIfAborted()
-        deps.prepareHome?.(accountHomePath)
+        if (!profile) {
+          deps.prepareHome?.(accountHomePath)
+        }
         const run = deps.runSession ?? runCodexAppServerSession
         const { listing, unavailable } = await run(
           {

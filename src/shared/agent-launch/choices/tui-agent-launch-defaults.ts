@@ -1,3 +1,4 @@
+import { normalizeCodexLaunchProfiles } from './codex-launch-profiles'
 import { normalizeAgentLaunchChoices } from './agent-launch-choices'
 import {
   agentPermissionHostPlatform,
@@ -151,6 +152,9 @@ export function sanitizeAgentLaunchProfileUpdates(
   target: Partial<GlobalSettings>,
   updates: Partial<GlobalSettings>
 ): void {
+  if ('codexLaunchProfiles' in updates) {
+    target.codexLaunchProfiles = normalizeCodexLaunchProfiles(updates.codexLaunchProfiles)
+  }
   if ('agentDefaultArgs' in updates) {
     target.agentDefaultArgs = normalizeTuiAgentArgsRecord(updates.agentDefaultArgs)
     target.agentYoloDefaultsMigrated = true

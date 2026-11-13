@@ -117,6 +117,20 @@ export const SettingsUpdate = z
     experimentalConnectors: z.boolean().optional(),
     agentStatusHooksEnabled: z.boolean().optional(),
     codexShareHistoryAcrossAccounts: z.boolean().optional(),
+    codexLaunchProfiles: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/),
+            label: z.string().trim().min(1).max(80),
+            homePath: z.string().trim().min(1).max(4096),
+            modelProvider: z.string().trim().min(1).max(128),
+            model: z.string().trim().min(1).max(256).optional()
+          })
+          .strict()
+      )
+      .max(64)
+      .optional(),
     claudeSubagentNavigationEnabled: z.boolean().optional(),
     defaultRepoSelection: z.array(z.string()).nullable().optional(),
     defaultLinearTeamSelection: z.array(z.string()).nullable().optional(),

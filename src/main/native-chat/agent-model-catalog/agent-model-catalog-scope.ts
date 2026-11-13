@@ -43,7 +43,7 @@ export async function resolveAgentModelCatalogScope(
   const probe = deps.probes?.[params.agent]
   // Fixed when its readers asked: no chat closing later turns a shared refresh passive.
   const savedOnly = () => !!params.savedOnly
-  if (params.legacy) {
+  if (params.legacy && !record?.codexLaunchProfile) {
     const fingerprint = agentModelCatalogScopeFingerprint(base, 'legacy-account')
     const resolved =
       savedOnly() || !deps.store.probeDue(fingerprint)
@@ -83,7 +83,9 @@ export async function resolveAgentModelCatalogScope(
     return { base, fingerprint: base, exact: false, cwd: listIn }
   }
   const resolve = (lookup: AgentModelCatalogLookup) =>
-    probe?.resolve?.(home, listIn, lookup, operation, cwd).catch(() => null)
+    probe
+      ?.resolve?.(home, listIn, lookup, operation, cwd, record?.codexLaunchProfile)
+      .catch(() => null)
   const scopeKey = (resolved: AgentModelCatalogResolvedProbe | null | undefined) =>
     agentModelCatalogScopeFingerprint(base, listIn, resolved?.identity)
   let resolved = await resolve(savedOnly() ? 'saved' : 'snapshot')

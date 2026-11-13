@@ -83,6 +83,7 @@ export abstract class OrcaRuntimeWithGetAgentSessionExecutionNamespace extends O
       return undefined
     }
     const options = {
+      ...(preferences.launchProfileId ? { launchProfileId: preferences.launchProfileId } : {}),
       ...(preferences.model ? { model: preferences.model } : {}),
       ...(preferences.effort ? { effort: preferences.effort } : {}),
       ...(preferences.mode ? { mode: preferences.mode } : {})
@@ -122,6 +123,11 @@ export abstract class OrcaRuntimeWithGetAgentSessionExecutionNamespace extends O
     request: RuntimeEnsureAgentSessionRequest,
     _caller: RuntimeAgentSessionRpcCaller = {}
   ): Promise<RuntimeEnsureAgentSessionResult> {
+    if (request.kind === 'explicit' && request.launchPreferences?.launchProfileId) {
+      throw new Error(
+        'Choose a Codex launch profile for a new conversation; saved restores keep their original profile.'
+      )
+    }
     if (request.kind === 'automatic') {
       // Legacy renderer sleep records are migration evidence, not host authority.
       throw new Error('agent_session_resume_not_authorized')

@@ -1,3 +1,4 @@
+import { codexLaunchProfileCatalogKey } from '../../../../shared/agent-launch/choices/codex-launch-profiles'
 import type {
   CodexSessionCatalogAccess,
   CodexStructuredSessionAdapterDeps,
@@ -11,13 +12,14 @@ export function codexAcquireCatalogAccess(
     CodexStructuredSessionAdapterDeps,
     'modelCatalog' | 'readModelCatalog' | 'demandModelCatalog'
   >,
-  launch: Pick<CodexStructuredLaunch, 'codexHome'>,
+  launch: Pick<CodexStructuredLaunch, 'codexHome' | 'codexLaunchProfile'>,
   sessionId?: string
 ): CodexSessionCatalogAccess | undefined {
   const access = agentModelCatalogSessionAccess(
     deps.modelCatalog,
     CODEX_STRUCTURED_AGENT,
-    launch.codexHome
+    launch.codexHome,
+    codexLaunchProfileCatalogKey(launch.codexLaunchProfile)
   )
   const demand = deps.demandModelCatalog
   return access && sessionId

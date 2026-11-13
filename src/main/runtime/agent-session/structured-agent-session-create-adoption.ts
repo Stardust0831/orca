@@ -45,6 +45,7 @@ export type StructuredAgentSessionCreateIntentInput = {
   forkFrom?: { sessionId: string; throughItemId: string }
   resumeFrom?: StructuredAgentSessionResumeSource
   structuredAgentCliSourceEvidence?: StructuredAgentCliSourceEvidence
+  launchProfileId?: string
 }
 
 export function resolveCommittedStructuredAgentSessionAdoptionIntent(input: {
@@ -85,6 +86,9 @@ export function resolveCommittedStructuredAgentSessionAdoptionIntent(input: {
     provider: input.agent,
     agent: input.agent,
     accountHome: replay.record.accountHome,
+    ...(replay.record.codexLaunchProfile
+      ? { codexLaunchProfile: replay.record.codexLaunchProfile }
+      : {}),
     ...(input.forkFrom
       ? {
           options: {

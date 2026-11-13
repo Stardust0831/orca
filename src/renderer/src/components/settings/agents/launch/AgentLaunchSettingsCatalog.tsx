@@ -1,3 +1,4 @@
+import { CodexLaunchProfilesSection } from './CodexLaunchProfilesSection'
 import { useAppStateValue } from '@/store/retained-views/app-state-view'
 import { AgentLaunchChoiceEditor } from '@/components/agent/launch-settings/AgentLaunchChoiceEditor'
 import { agentChatPermissionModes } from '../../../../../../shared/agent-launch/permissions/agent-chat-permission-support'
@@ -375,6 +376,12 @@ export function AgentLaunchSettingsCatalog({
           )
         }
       />
+      {settings.codexLaunchProfiles !== undefined ? (
+        <CodexLaunchProfilesSection
+          profiles={settings.codexLaunchProfiles}
+          save={(profiles) => mutate({ type: 'codex-profiles', profiles })}
+        />
+      ) : null}
       <AgentDetectionCatalog
         detectedAgents={installedAgents}
         undetectedAgents={undetectedAgents}

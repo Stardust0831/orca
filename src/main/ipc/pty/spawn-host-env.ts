@@ -1,3 +1,6 @@
+import { CODEX_PROFILE_HOME_ENV } from '../../../shared/agent-launch/choices/codex-launch-profiles'
+import { resolveCodexLaunchProfileHome } from '../../codex/configuration/homes/codex-launch-profile-home'
+import { reconcileCodexAccountHomeHook } from '../../codex/hooks/reconciliation/codex-account-home-hook'
 import { getClaudeAgentViewService } from '../../claude/agent-view/agent-view-service'
 import type { AgentProviderSessionMetadata } from '../../../shared/agent-session/lifecycle/agent-session-resume'
 import { getAppEnvironment } from '../../../shared/app-environment'
@@ -7,7 +10,10 @@ import { SETUP_AGENT_SEQUENCE_SETUP_SCRIPT_ENV } from '../../../shared/agent-lau
 import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import { isTuiAgent } from '../../../shared/agent-launch/catalog/tui-agent-config'
 import { addWslEnvKeys } from '../../../shared/wsl-env'
-import { isAgentStatusHooksEnabled } from '../../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
+import {
+  isAgentStatusHooksEnabled,
+  isAgentStatusHooksEnabledForAgent
+} from '../../../shared/agent-hook-listener/configuration/agent-status-hooks-setting'
 import { awaitExplicitAgentPluginGuestReadiness } from '../../agent-hooks/wsl-relay/wsl-agent-plugin-readiness'
 import { ensureCodexStateDbBackfillRecoveryStarted } from '../../codex/history/index/codex-state-db-backfill-recovery'
 import type { CodexSessionResumePreparation } from '../../codex/history/resume/codex-session-resume-home'
@@ -118,16 +124,34 @@ export async function resolvePtySpawnHostEnv(args: PtySpawnHostEnvArgs): Promise
 
 async function resolvePtySpawnHostEnvForAct(args: PtySpawnHostEnvArgs): Promise<PtySpawnHostEnv> {
   const { deps, codexSelectionTarget: target } = args
-  const codexResumePreparation = args.preAdopted
-    ? null
-    : deps.prepareCodexResumeHome({
-        launchAgent: args.launchAgent,
-        providerSession: args.resumeProviderSession,
-        target,
-        // Client-supplied CODEX_HOME can bypass host resume preparation.
-        launchEnv: args.env,
-        ...(args.resumeOnSelectedAccount ? { useSelectedAccount: true } : {})
-      })
+  const profileHome = args.launchAgent === 'codex' ? args.env?.[CODEX_PROFILE_HOME_ENV] : undefined
+  if (profileHome) {
+    if (target.runtime === 'wsl') {
+      throw new Error('Configure the Codex launch profile on the WSL execution host.')
+    }
+    await resolveCodexLaunchProfileHome({
+      id: 'saved-profile',
+      label: 'Saved launch profile',
+      homePath: profileHome,
+      modelProvider: 'configured'
+    })
+    await reconcileCodexAccountHomeHook(
+      profileHome,
+      () => isAgentStatusHooksEnabledForAgent(deps.getSettings?.(), 'codex'),
+      true
+    )
+  }
+  const codexResumePreparation =
+    args.preAdopted || profileHome
+      ? null
+      : deps.prepareCodexResumeHome({
+          launchAgent: args.launchAgent,
+          providerSession: args.resumeProviderSession,
+          target,
+          // Client-supplied CODEX_HOME can bypass host resume preparation.
+          launchEnv: args.env,
+          ...(args.resumeOnSelectedAccount ? { useSelectedAccount: true } : {})
+        })
   const codexResumeLaunch = codexResumePreparation
     ? await deps.resolveCodexResumeLaunch(args.command, codexResumePreparation)
     : deps.noCodexResumeLaunch(args.preAdopted ? undefined : args.command)
@@ -138,7 +162,9 @@ async function resolvePtySpawnHostEnvForAct(args: PtySpawnHostEnvArgs): Promise<
   const baseEnv = deps.stripSequencedStartupResumeArgv(args.env, codexResumeLaunch)
   const launchesCodex = args.launchAgent === 'codex'
   const selectLaunchCodexHome = async (): Promise<string | null> =>
-    (await deps.getSelectedCodexHomePath?.(target, baseEnv, { launchesCodex })) ?? null
+    profileHome ??
+    (await deps.getSelectedCodexHomePath?.(target, baseEnv, { launchesCodex })) ??
+    null
   let selectedCodexHomePath = !args.preAdopted
     ? getCompatibleSelectedCodexHomePath(
         target,
@@ -149,7 +175,7 @@ async function resolvePtySpawnHostEnvForAct(args: PtySpawnHostEnvArgs): Promise<
           : await selectLaunchCodexHome()
       )
     : null
-  if (!args.preAdopted && launchesCodex && !args.callerNamedSession) {
+  if (!args.preAdopted && launchesCodex && !profileHome && !args.callerNamedSession) {
     const resolution = resolveCodexHomeAfterManagedAuthReadiness({
       selectedCodexHomePath,
       getSettings: () => deps.getSettings?.(),
@@ -190,7 +216,8 @@ async function resolvePtySpawnHostEnvForAct(args: PtySpawnHostEnvArgs): Promise<
     env: baseEnv,
     selectedCodexHomePath,
     codexResumeHomeSelected: Boolean(
-      codexResumeHome && codexHomePathsEqual(selectedCodexHomePath, codexResumeHome.codexHomePath)
+      profileHome ||
+      (codexResumeHome && codexHomePathsEqual(selectedCodexHomePath, codexResumeHome.codexHomePath))
     ),
     skipCodexHomeEnv,
     stripInheritedOrcaCodexHome:
